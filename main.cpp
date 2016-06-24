@@ -9,17 +9,21 @@
 
 int main(int argc, char ** argv)
 {
-	std::unique_ptr<A> a(new A(33));
+	std::printf("start\n");
+	std::fflush(stdout);
+	std::unique_ptr<A> a(A::make(33));
 	std::printf("a->value=%d\n", a->value());
+	std::fflush(stdout);
 	a->setValue(55);
 	std::printf("a->value=%d\n", a->value());
+	std::fflush(stdout);
 
-//	A a2;
-
-	std::unique_ptr<B> b(new B(87));
+	std::unique_ptr<B> b(B::make(87));
 	std::printf("b->value=%d b->data=%d\n", b->value(), b->data());
+	std::fflush(stdout);
 	b->setValue(45);
 	std::printf("b->value=%d b->data=%d\n", b->value(), b->data());
+	std::fflush(stdout);
 
 	return 0;
 }
