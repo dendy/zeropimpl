@@ -15,22 +15,27 @@ namespace Zeropimpl {
 
 
 // Memory layout is next:
+//   sizeof(size_t)  - size of private data
 //   sizeof(Private) - instance private data memory
+//   sizeof(size_t)  - size of private data (again)
 //   size            - instance memory
 
 template <typename T>
 void * alloc(std::size_t size)
 {
 	typedef typename T::Private Private;
+	constexpr std::size_t sizeo = sizeof(std::size_t);
 	constexpr std::size_t sizep = sizeof(Private);
 
-	uint8_t * const data = static_cast<uint8_t*>(std::malloc(sizep + size));
+	uint8_t * const data = static_cast<uint8_t*>(std::malloc(sizeo + sizep + sizeo + size));
 
-	void * const i = data + sizep;
-	Private * const p = new (data) Private;
+	reinterpret_cast<std::size_t&>(*data) = sizep;
+	reinterpret_cast<std::size_t&>(*(data + sizeo + sizep)) = sizep;
+	void * const i = data + sizeo + sizep + sizeo;
+	Private * const p = new (data + sizeo) Private;
 
 #ifdef USE_DEBUG
-	std::printf("%s %d class=%p private=%p\n", __PRETTY_FUNCTION__, int(size), i, p);
+	std::printf("%s %d class=%p private=%p sizep=%d\n", __PRETTY_FUNCTION__, int(size), i, p, int(sizep));
 	std::fflush(stdout);
 #endif
 
@@ -42,10 +47,11 @@ template <typename T>
 void free(void * const ptr)
 {
 	typedef typename T::Private Private;
+	constexpr std::size_t sizeo = sizeof(std::size_t);
 	constexpr std::size_t sizep = sizeof(Private);
 
-	uint8_t * const data = static_cast<uint8_t*>(ptr) - sizep;
-	Private * const p = reinterpret_cast<Private*>(data);
+	uint8_t * const data = static_cast<uint8_t*>(ptr) - sizeo - sizep - sizeo;
+	Private * const p = reinterpret_cast<Private*>(data + sizeo);
 	p->~Private();
 	std::free(data);
 
@@ -60,9 +66,11 @@ template <typename T>
 static const T & fromPrivate(const typename T::Private & p)
 {
 	typedef typename T::Private Private;
-	constexpr std::size_t sizep = sizeof(Private);
+	constexpr std::size_t sizeo = sizeof(std::size_t);
 
-	return reinterpret_cast<const T&>(*(reinterpret_cast<const uint8_t*>(&p) + sizep));
+	const std::size_t sizep = reinterpret_cast<const std::size_t&>(*(reinterpret_cast<const uint8_t*>(&p) - sizeo));
+
+	return reinterpret_cast<const T&>(*(reinterpret_cast<const uint8_t*>(&p) + sizep + sizeo));
 }
 
 
@@ -70,9 +78,18 @@ template <typename T>
 static const typename T::Private & toPrivate(const T & t)
 {
 	typedef typename T::Private Private;
-	constexpr std::size_t sizep = sizeof(Private);
+	constexpr std::size_t sizeo = sizeof(std::size_t);
 
-	return reinterpret_cast<const Private&>(*(reinterpret_cast<const uint8_t*>(&t) - sizep));
+	const std::size_t sizep = reinterpret_cast<const std::size_t&>(*(reinterpret_cast<const uint8_t*>(&t) - sizeo));
+
+	const Private & p = reinterpret_cast<const Private&>(*(reinterpret_cast<const uint8_t*>(&t) - sizeo - sizep));
+
+#ifdef USE_DEBUG
+	std::printf("%s class=%p private=%p sizep=%d\n", __PRETTY_FUNCTION__, &t, &p, int(sizep));
+	std::fflush(stdout);
+#endif
+
+	return p;
 }
 
 

@@ -22,9 +22,9 @@ DEFINE_PRIVATE(A)
 
 A::A(const int value)
 {
-	std::printf("%s %p\n", __PRETTY_FUNCTION__, this);
 	Private & p = to_private();
 	p.value = value;
+	std::printf("%s class=%p private=%p\n", __PRETTY_FUNCTION__, this, &p);
 }
 
 
@@ -37,8 +37,8 @@ A::~A()
 
 int A::value() const
 {
-	std::printf("%s %p\n", __PRETTY_FUNCTION__, this);
 	const Private & p = to_private();
+	std::printf("%s class=%p private=%p addr(value)=%p\n", __PRETTY_FUNCTION__, this, &p, &p.value);
 	return p.value;
 }
 
@@ -62,6 +62,7 @@ public:
 	}
 
 	int data;
+	char foo[15];
 };
 
 DEFINE_PRIVATE(B)
@@ -71,9 +72,9 @@ DEFINE_PRIVATE(B)
 
 B::B(const int data)
 {
-	std::printf("%s %p\n", __PRETTY_FUNCTION__, this);
 	Private & p = to_private();
 	p.data = data;
+	std::printf("%s class=%p private=%p\n", __PRETTY_FUNCTION__, this, &p);
 }
 
 
@@ -87,6 +88,7 @@ B::~B()
 int B::data() const
 {
 	const Private & p = to_private();
+	std::printf("%s class=%p private=%p addr(data)=%p addr(foo)=%p\n", __PRETTY_FUNCTION__, this, &p, &p.data, &p.foo);
 	return p.data;
 }
 
