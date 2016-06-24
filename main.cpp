@@ -7,6 +7,32 @@
 
 
 
+class C : public B
+{
+public:
+	C(int value) :
+		value(value)
+	{
+		std::printf("C()\n");
+	}
+
+	~C() override
+	{
+		std::printf("~C()\n");
+	}
+
+	void event(int what) override
+	{
+		std::printf("C::event() %d\n", what);
+		B::event(what);
+	}
+
+	int value;
+};
+
+
+
+
 int main(int argc, char ** argv)
 {
 	std::printf("start\n");
@@ -30,6 +56,13 @@ int main(int argc, char ** argv)
 	std::printf("b2->value=%d b2->data=%d\n", b2reader->value(), b2reader->data());
 	b2->event(48);
 	std::printf("b2->value=%d b2->data=%d\n", b2reader->value(), b2reader->data());
+
+	std::unique_ptr<C> c(new C(77));
+	std::printf("c->value=%d c->data=%d c->A::value()=%d\n", c->value, c->data(), c->A::value());
+	A * const ca = c.get();
+	ca->event(66);
+	std::printf("c->value=%d c->data=%d c->A::value()=%d\n", c->value, c->data(), c->A::value());
+	std::unique_ptr<A> cap = std::move(c);
 
 	return 0;
 }
