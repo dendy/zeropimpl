@@ -21,10 +21,10 @@ public: \
 	} \
 \
 private: \
-	static const T & from_private(const Private & p) { return reinterpret_cast<const T&>(p); } \
-	static T & from_private(Private & p) { return reinterpret_cast<T&>(p); } \
-	const Private & to_private() const { return reinterpret_cast<const Private&>(*this); } \
-	Private & to_private() { return reinterpret_cast<Private&>(*this); }
+	static const T & from_private(const Private & p); \
+	static T & from_private(Private & p); \
+	const Private & to_private() const; \
+	Private & to_private();
 
 
 
@@ -32,10 +32,12 @@ private: \
 class A
 {
 public:
-	~A();
+	virtual ~A();
 
 	int value() const;
 	void setValue(int value);
+
+	virtual void event(int) {}
 
 protected:
 	A(int value = 42);
@@ -53,6 +55,8 @@ public:
 	~B();
 
 	int data() const;
+
+	void event(int what) override;
 
 protected:
 	B(int data = 73);
