@@ -7,20 +7,20 @@
 
 
 
+// Memory layout is next:
+//   sizeof(Private) - instance private data memory
+//   size            - instance memory
+
 template <typename T>
 void * alloc(std::size_t size)
 {
 	typedef typename T::Private Private;
-	constexpr std::size_t sizeo = sizeof(size_t);
+	constexpr std::size_t sizep = sizeof(Private);
 
-	size = std::max(sizeo, size);
+	uint8_t * const data = static_cast<uint8_t*>(std::malloc(sizep + size));
 
-	uint8_t * const data = static_cast<uint8_t*>(std::malloc(sizeo + size + sizeo + sizeof(Private)));
-	reinterpret_cast<size_t&>(*data) = size;
-	reinterpret_cast<size_t&>(*(data + sizeo + size)) = size;
-
-	void * const i = data + sizeo;
-	Private * const p = new (data + sizeo + size + sizeo) Private;
+	void * const i = data + sizep;
+	Private * const p = new (data) Private;
 
 	std::printf("%s %d class=%p private=%p\n", __PRETTY_FUNCTION__, int(size), i, p);
 	std::fflush(stdout);
@@ -33,10 +33,10 @@ template <typename T>
 void free(void * const ptr)
 {
 	typedef typename T::Private Private;
-	constexpr std::size_t sizeo = sizeof(size_t);
+	constexpr std::size_t sizep = sizeof(Private);
 
-	uint8_t * const data = static_cast<uint8_t*>(ptr) - sizeo;
-	Private * const p = reinterpret_cast<Private*>(data + sizeo + reinterpret_cast<const size_t&>(*data) + sizeo);
+	uint8_t * const data = static_cast<uint8_t*>(ptr) - sizep;
+	Private * const p = reinterpret_cast<Private*>(data);
 	p->~Private();
 	std::free(data);
 
@@ -49,10 +49,9 @@ template <typename T>
 static const T & t_from_private(const typename T::Private & p)
 {
 	typedef typename T::Private Private;
-	constexpr std::size_t sizeo = sizeof(size_t);
+	constexpr std::size_t sizep = sizeof(Private);
 
-	const std::size_t size = reinterpret_cast<const std::size_t&>(*(reinterpret_cast<const uint8_t*>(&p) - sizeo));
-	return reinterpret_cast<const T&>(*(reinterpret_cast<const uint8_t*>(&p) - sizeo - size));
+	return reinterpret_cast<const T&>(*(reinterpret_cast<const uint8_t*>(&p) + sizep));
 }
 
 
@@ -60,10 +59,9 @@ template <typename T>
 static const typename T::Private & t_to_private(const T & t)
 {
 	typedef typename T::Private Private;
-	constexpr std::size_t sizeo = sizeof(size_t);
+	constexpr std::size_t sizep = sizeof(Private);
 
-	const std::size_t size = reinterpret_cast<const std::size_t&>(*(reinterpret_cast<const uint8_t*>(&t) - sizeo));
-	return reinterpret_cast<const Private&>(*(reinterpret_cast<const uint8_t*>(&t) + size + sizeo));
+	return reinterpret_cast<const Private&>(*(reinterpret_cast<const uint8_t*>(&t) - sizep));
 }
 
 
