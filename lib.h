@@ -14,10 +14,6 @@ namespace Zeropimpl {
 
 
 
-
-
-
-
 // Memory layout is next:
 //   sizeof(Private) - instance private data memory
 //   size            - instance memory
