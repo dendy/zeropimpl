@@ -1,40 +1,66 @@
 
 #include <cstdio>
 #include <memory>
+#include <string>
+#include <ctime>
+#include <iostream>
+#include <chrono>
 
-#include "lib.h"
+#include "abc.h"
+
+#include "test_pimpl.h"
+#include "test_zeropimpl.h"
 
 
 
 
-class C : public B
+static const int kNumAllocs = 100000000;
+
+
+
+
+void runPimpl()
 {
-public:
-	C(int value) :
-		value(value)
-	{
-		std::printf("C()\n");
+	for ( int i = 0; i < kNumAllocs; ++i ) {
+		const int r = std::rand();
+		std::unique_ptr<PObject> o(r%2 ? new PObject(r) : new PWidget(r, r));
 	}
+}
 
-	~C() override
-	{
-		std::printf("~C()\n");
+
+void runZeropimpl()
+{
+	for ( int i = 0; i < kNumAllocs; ++i ) {
+		const int r = std::rand();
+		std::unique_ptr<ZObject> o(r%2 ? new ZObject(r) : new ZWidget(r, r));
 	}
-
-	void event(int what) override
-	{
-		std::printf("C::event() %d\n", what);
-		B::event(what);
-	}
-
-	int value;
-};
+}
 
 
 
 
 int main(int argc, char ** argv)
 {
+	if ( argc > 1 ) {
+		std::srand(42);
+
+		const std::string arg = argv[1];
+		std::cout << arg << std::endl;
+
+		const auto begin = std::chrono::system_clock::now();
+
+		if ( arg == "pimpl" ) {
+			runPimpl();
+		} else if ( arg == "zeropimpl" ) {
+			runZeropimpl();
+		}
+
+		std::chrono::duration<double> time = std::chrono::system_clock::now() - begin;
+		std::cout << "time: " << time.count() << std::endl;
+
+		return 0;
+	}
+
 	std::printf("start\n");
 	std::fflush(stdout);
 	std::unique_ptr<A> a(A::make(33));

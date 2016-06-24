@@ -1,8 +1,83 @@
 
 #pragma once
 
+//#define USE_DEBUG
+
 #include <cstddef>
 #include <memory>
+
+
+
+
+namespace Zeropimpl {
+
+
+
+
+
+
+
+
+// Memory layout is next:
+//   sizeof(Private) - instance private data memory
+//   size            - instance memory
+
+template <typename T>
+void * alloc(std::size_t size)
+{
+	typedef typename T::Private Private;
+	constexpr std::size_t sizep = sizeof(Private);
+
+	uint8_t * const data = static_cast<uint8_t*>(std::malloc(sizep + size));
+
+	void * const i = data + sizep;
+	Private * const p = new (data) Private;
+
+#ifdef USE_DEBUG
+	std::printf("%s %d class=%p private=%p\n", __PRETTY_FUNCTION__, int(size), i, p);
+	std::fflush(stdout);
+#endif
+
+	return i;
+}
+
+
+template <typename T>
+void free(void * const ptr)
+{
+	typedef typename T::Private Private;
+	constexpr std::size_t sizep = sizeof(Private);
+
+	uint8_t * const data = static_cast<uint8_t*>(ptr) - sizep;
+	Private * const p = reinterpret_cast<Private*>(data);
+	p->~Private();
+	std::free(data);
+
+#ifdef USE_DEBUG
+	std::printf("%s class=%p private=%p\n", __PRETTY_FUNCTION__, ptr, p);
+	std::fflush(stdout);
+#endif
+}
+
+
+template <typename T>
+static const T & fromPrivate(const typename T::Private & p)
+{
+	typedef typename T::Private Private;
+	constexpr std::size_t sizep = sizeof(Private);
+
+	return reinterpret_cast<const T&>(*(reinterpret_cast<const uint8_t*>(&p) + sizep));
+}
+
+
+template <typename T>
+static const typename T::Private & toPrivate(const T & t)
+{
+	typedef typename T::Private Private;
+	constexpr std::size_t sizep = sizeof(Private);
+
+	return reinterpret_cast<const Private&>(*(reinterpret_cast<const uint8_t*>(&t) - sizep));
+}
 
 
 
@@ -27,39 +102,15 @@ private: \
 	Private & to_private();
 
 
-
-
-class A
-{
-public:
-	virtual ~A();
-
-	int value() const;
-	void setValue(int value);
-
-	virtual void event(int) {}
-
-protected:
-	A(int value = 42);
-
-	DECLARE_PRIVATE(A)
-};
+#define DEFINE_PRIVATE(T) \
+	void * T::operator new(const std::size_t size) { return Zeropimpl::alloc<T>(size); } \
+	void T::operator delete(void * const ptr) { Zeropimpl::free<T>(ptr); } \
+	inline const T & T::from_private(const Private & p) { return Zeropimpl::fromPrivate<T>(p); } \
+	inline T & T::from_private(Private & p) { return const_cast<T&>(Zeropimpl::fromPrivate<T>(p)); } \
+	inline const T::Private & T::to_private() const { return Zeropimpl::toPrivate<T>(*this); } \
+	inline T::Private & T::to_private() { return const_cast<T::Private&>(Zeropimpl::toPrivate<T>(*this)); }
 
 
 
 
-
-class B : public A
-{
-public:
-	~B();
-
-	int data() const;
-
-	void event(int what) override;
-
-protected:
-	B(int data = 73);
-
-	DECLARE_PRIVATE(B)
-};
+} // Zeropimpl
